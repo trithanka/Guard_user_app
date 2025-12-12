@@ -5,25 +5,38 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// Color scheme
+export const AppColors = {
+  mainBackground: '#12122A', // Deep Black/Navy Blue
+  primaryText: '#E0E7FF', // Glowing White/Silver
+  accentGlow: '#33CCFF', // Electric Cyan/Blue
+  inputBackground: '#1C1C35', // Slightly Lighter Dark Gray/Blue
+  actionButton: '#00A3FF', // Bright Solid Blue
+};
+
+const tintColorLight = AppColors.actionButton;
+const tintColorDark = AppColors.primaryText;
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: AppColors.primaryText,
+    background: AppColors.mainBackground,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    icon: AppColors.primaryText,
+    tabIconDefault: AppColors.primaryText,
+    tabIconSelected: AppColors.accentGlow,
+    inputBackground: AppColors.inputBackground,
+    actionButton: AppColors.actionButton,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: AppColors.primaryText,
+    background: AppColors.mainBackground,
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    icon: AppColors.primaryText,
+    tabIconDefault: AppColors.primaryText,
+    tabIconSelected: AppColors.accentGlow,
+    inputBackground: AppColors.inputBackground,
+    actionButton: AppColors.actionButton,
   },
 };
 
