@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, StatusBar, Platform } from 'react-native';
+import ProfileSetupModal from '@/components/ProfileSetupModal';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, Dimensions, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import { Image as ExpoImage } from 'expo-image';
 
 const { width } = Dimensions.get('window');
 
@@ -63,6 +64,38 @@ const heroBanners = [
 
 export default function HomeScreen() {
   const [location, setLocation] = useState('Mondeal Square, Prahlad Nagar, Ahmea...');
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const params = useLocalSearchParams();
+  const isNewLogin = params.newLogin === 'true';
+
+  useEffect(() => {
+    // Show profile modal if user just logged in
+    // In a real app, you'd check AsyncStorage or backend to see if profile is complete
+    if (isNewLogin) {
+      // Small delay to ensure screen is fully loaded
+      const timer = setTimeout(() => {
+        setShowProfileModal(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isNewLogin]);
+
+  const handleProfileSubmit = (profileData: {
+    name: string;
+    gender: string;
+    dob: string;
+    email?: string;
+  }) => {
+    // TODO: Save profile data to backend/AsyncStorage
+    console.log('Profile data:', profileData);
+    
+    // Update user name in header if available
+    // You can store this in state or context for global access
+    
+    Alert.alert('Success', 'Profile setup completed successfully!', [
+      { text: 'OK', onPress: () => setShowProfileModal(false) }
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -216,6 +249,13 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
       </SafeAreaView>
+
+      {/* Profile Setup Modal */}
+      <ProfileSetupModal
+        visible={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        onSubmit={handleProfileSubmit}
+      />
     </SafeAreaView>
   );
 }
@@ -246,7 +286,7 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 2,
   },
   headerTextContainer: {
     alignItems: 'flex-end',
@@ -263,7 +303,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   profileButton: {
-    padding: 8,
+    marginLeft: 8,
+    marginTop: 3,
+    // paddingRight: 4,
   },
   profileImage: {
     width: 40,

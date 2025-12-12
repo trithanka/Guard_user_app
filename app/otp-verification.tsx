@@ -82,7 +82,13 @@ export default function OTPVerificationScreen() {
       // TODO: Verify OTP with backend
       console.log('Verifying OTP:', otpString);
       Alert.alert('Success', 'OTP verified successfully!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
+        { 
+          text: 'OK', 
+          onPress: () => router.replace({
+            pathname: '/(tabs)',
+            params: { newLogin: 'true' }
+          })
+        }
       ]);
     } else {
       Alert.alert('Error', 'Please enter the complete 6-digit OTP');
