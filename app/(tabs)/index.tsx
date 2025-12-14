@@ -1,72 +1,83 @@
+import { GuardRequestForm } from '@/components/GuardRequestForm';
 import ProfileSetupModal from '@/components/ProfileSetupModal';
+import { ServicesView } from '@/components/ServicesView';
+import { LocationMap } from '@/components/map/LocationMap';
+import { getLocationData, LocationCoords, requestLocationPermission } from '@/services/locationService';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, Dimensions, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Animated, Dimensions, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MAP_HEIGHT = SCREEN_HEIGHT * 0.4; // 40% of screen height - reduced to show more content
 
 // Color scheme
 const COLORS = {
-  mainBackground: '#12122A',
-  primaryText: '#E0E7FF',
-  accentGlow: '#33CCFF',
-  inputBackground: '#1C1C35',
-  actionButton: '#00A3FF',
   red: '#EF4444',
-  yellow: '#FBBF24',
-  blue: '#3B82F6',
   white: '#FFFFFF',
   gray: '#6B7280',
   lightGray: '#F3F4F6',
+  darkGray: '#1F2937',
 };
 
-const services = [
-  { id: 1, icon: 'security' as const, title: 'Personal Security Services', color: COLORS.red },
-  { id: 2, icon: 'business-center' as const, title: 'Business/Office Guards', color: COLORS.blue },
-  { id: 3, icon: 'home' as const, title: 'Apartment/Colony Guards', color: COLORS.yellow },
-  { id: 4, icon: 'event' as const, title: 'Event Excel Security', color: COLORS.accentGlow },
-  { id: 5, icon: 'directions-car' as const, title: 'Travel & Escort Guards', color: COLORS.actionButton },
-  { id: 6, icon: 'person' as const, title: 'VIP/Executive Protection', color: COLORS.red },
-];
-
-const featuredGuards = [
-  { id: 1, name: 'Armed Guards', distance: '2 km away', rating: null, image: null },
-  { id: 2, name: '5.0 (1k) Rated Guard', distance: '2 km away', rating: 5.0, image: null },
-  { id: 3, name: 'Close Protection', distance: '2 km away', rating: null, image: null },
-  { id: 4, name: 'Close Protection', distance: '2 km away', rating: null, image: null },
-];
-
-const heroBanners = [
-  { 
-    id: 1, 
-    title: 'ON-DEMAND BODYGUARD', 
-    subtitle: 'Hire trusted security guards anytime, anywhere. Fast & Easy Booking.',
-    backgroundColor: COLORS.yellow,
-    icon: 'security' as const,
-  },
-  { 
-    id: 2, 
-    title: '24/7 SECURITY SERVICE', 
-    subtitle: 'Professional guards available round the clock for your safety.',
-    backgroundColor: COLORS.blue,
-    icon: 'check-circle' as const,
-  },
-  { 
-    id: 3, 
-    title: 'INSTANT BOOKING', 
-    subtitle: 'Book a guard in minutes with our quick and easy process.',
-    backgroundColor: COLORS.accentGlow,
-    icon: 'alarm' as const,
-  },
-];
+type ViewType = 'map' | 'services';
 
 export default function HomeScreen() {
-  const [location, setLocation] = useState('Mondeal Square, Prahlad Nagar, Ahmea...');
+  const [currentView, setCurrentView] = useState<ViewType>('map');
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [locationPermission, setLocationPermission] = useState<boolean | null>(null);
+  const [userLocation, setUserLocation] = useState<LocationCoords | null>(null);
+  const [locationText, setLocationText] = useState('Mondeal Square, Prahlad Nagar, Ahmea...');
+  const [isLoadingLocation, setIsLoadingLocation] = useState(true);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef<any>(null);
   const params = useLocalSearchParams();
   const isNewLogin = params.newLogin === 'true';
+
+  // Request location permission and get current location
+  useEffect(() => {
+    const fetchLocation = async () => {
+      setIsLoadingLocation(true);
+      const locationData = await getLocationData();
+      
+      if (locationData) {
+        setUserLocation(locationData.coordinates);
+        setLocationPermission(true);
+        if (locationData.address) {
+          setLocationText(locationData.address);
+        }
+      } else {
+        setLocationPermission(false);
+      }
+      
+      setIsLoadingLocation(false);
+    };
+
+    fetchLocation();
+  }, []);
+
+  const handleRetryPermission = async () => {
+    setIsLoadingLocation(true);
+    const permissionResult = await requestLocationPermission();
+    
+    if (permissionResult.granted) {
+      const locationData = await getLocationData();
+      if (locationData) {
+        setUserLocation(locationData.coordinates);
+        setLocationPermission(true);
+        if (locationData.address) {
+          setLocationText(locationData.address);
+        }
+      }
+    } else {
+      setLocationPermission(false);
+    }
+    
+    setIsLoadingLocation(false);
+  };
 
   useEffect(() => {
     // Show profile modal if user just logged in
@@ -98,156 +109,154 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header Section */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.menuButton}>
-            <MaterialIcons name="menu" size={24} color={COLORS.red} />
-          </TouchableOpacity>
-          
-          <View style={styles.headerRight}>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.welcomeText}>Welcome</Text>
-              <Text style={styles.userName}>Robert Wilson</Text>
-            </View>
-            <TouchableOpacity style={styles.profileButton}>
-              <View style={styles.profileImage}>
-                <MaterialIcons name="person" size={20} color={COLORS.white} />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Location Section */}
-        <View style={styles.locationSection}>
-          <Ionicons name="location" size={18} color="#000000" />
-          <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
-          <MaterialIcons name="keyboard-arrow-down" size={20} color="#000000" />
-        </View>
-
-        {/* Hero Banner - Horizontal Scrolling */}
-        <View style={styles.heroBannerContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.heroBannerScroll}
-            pagingEnabled
-            snapToInterval={width - 60}
-            decelerationRate="fast"
-            scrollEventThrottle={16}
-            bounces={true}
-          >
-            {heroBanners.map((banner) => (
-              <View key={banner.id} style={[styles.heroBanner, { backgroundColor: banner.backgroundColor }]}>
-                <View style={styles.heroContent}>
-                  <Text style={styles.heroTitle}>{banner.title}</Text>
-                  <Text style={styles.heroSubtitle}>
-                    {banner.subtitle}
-                  </Text>
-                </View>
-                <View style={styles.heroImage}>
-                  <MaterialIcons 
-                    name={banner.icon} 
-                    size={50} 
-                    color="#FFFFFF"
-                  />
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Book a Service Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Book a Service</Text>
-            <View style={styles.verifiedBadge}>
-              <MaterialIcons name="verified" size={16} color={COLORS.white} />
-              <View style={styles.verifiedTextContainer}>
-                <Text style={styles.verifiedText}>VERIFIED</Text>
-                <Text style={styles.verifiedText}>CERTIFIED</Text>
+      
+        {/* Conditional Content */}
+        {currentView === 'map' ? (
+          <>
+            {/* Location Search Filter */}
+            <View style={styles.searchContainer}>
+              <View style={styles.searchBar}>
+                <MaterialIcons name="search" size={24} color={COLORS.gray} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search location or address"
+                  placeholderTextColor={COLORS.gray}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  returnKeyType="search"
+                  onSubmitEditing={() => {
+                    // TODO: Implement search functionality
+                    console.log('Searching for:', searchQuery);
+                  }}
+                />
+                <TouchableOpacity 
+                  onPress={() => {
+                    // TODO: Implement filter functionality
+                    console.log('Open filters');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="tune" size={24} color={COLORS.gray} />
+                </TouchableOpacity>
               </View>
             </View>
-          </View>
-          
-          <View style={styles.servicesGrid}>
-            {services.map((service) => (
-              <TouchableOpacity key={service.id} style={styles.serviceCard}>
-                <View style={styles.serviceIconContainer}>
-                  <View style={[styles.serviceIcon, { backgroundColor: `${service.color}15` }]}>
-                    <MaterialIcons name={service.icon} size={36} color={service.color} />
-                  </View>
-                </View>
-                <Text style={styles.serviceTitle}>{service.title}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
 
-        {/* Featured Guards Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Featured Guards Near You</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.guardsScroll}
-            style={styles.guardsScrollContainer}
-          >
-            {featuredGuards.map((guard) => (
-              <TouchableOpacity key={guard.id} style={styles.guardCard}>
-                <View style={styles.guardImage}>
-                  <MaterialIcons name="person" size={40} color={COLORS.white} />
-                </View>
-                <Text style={styles.guardName}>{guard.name}</Text>
-                {guard.rating && (
-                  <View style={styles.ratingContainer}>
-                    <MaterialIcons name="star" size={14} color={COLORS.yellow} />
-                    <Text style={styles.ratingText}>{guard.rating}</Text>
-                  </View>
-                )}
-                <Text style={styles.guardDistance}>{guard.distance}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </ScrollView>
+            {/* Scrollable Content with Parallax Map */}
+          <View style={styles.scrollContainer}>
+            {/* Parallax Map Section */}
+            <Animated.View
+              style={[
+                styles.mapWrapper,
+                {
+                  height: scrollY.interpolate({
+                    inputRange: [0, MAP_HEIGHT],
+                    outputRange: [MAP_HEIGHT, 0],
+                    extrapolate: 'clamp',
+                  }),
+                  opacity: scrollY.interpolate({
+                    inputRange: [0, MAP_HEIGHT * 0.5],
+                    outputRange: [1, 0],
+                    extrapolate: 'clamp',
+                  }),
+                },
+              ]}
+              pointerEvents={scrollPosition < 20 ? 'auto' : 'none'}
+            >
+              <LocationMap
+                userLocation={userLocation}
+                isLoading={isLoadingLocation}
+                hasPermission={locationPermission}
+                onRetryPermission={handleRetryPermission}
+              />
+            </Animated.View>
+
+            <Animated.ScrollView
+              ref={scrollViewRef}
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              scrollEventThrottle={16}
+              onScroll={Animated.event(
+                [
+                  {
+                    nativeEvent: {
+                      contentOffset: { y: scrollY },
+                    },
+                  },
+                ],
+                {
+                  useNativeDriver: false,
+                  listener: (event: any) => {
+                    const offset = event.nativeEvent.contentOffset.y;
+                    setScrollPosition(offset);
+                  },
+                }
+              )}
+              contentInsetAdjustmentBehavior="never"
+              keyboardShouldPersistTaps="handled"
+              scrollEnabled={true}
+              bounces={true}
+            >
+              {/* Spacer to push content below map - starts exactly where map ends */}
+              <View style={{ height: MAP_HEIGHT }} />
+              
+              {/* Guard Request Form */}
+              <GuardRequestForm />
+            </Animated.ScrollView>
+          </View>
+        </>
+      ) : (
+        <ServicesView locationText={locationText} />
+      )}
 
       {/* Bottom Navigation */}
       <SafeAreaView edges={['bottom']} style={styles.bottomNavContainer}>
         <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="home" size={24} color={COLORS.red} />
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Home</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="event-note" size={24} color={COLORS.gray} />
-          <Text style={styles.navLabel}>Bookings</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.sosButton}>
-          <View style={styles.sosButtonInner}>
-            <Ionicons name="warning" size={28} color={COLORS.white} />
-          </View>
-          <Text style={styles.sosLabel}>SOS</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="account-balance-wallet" size={24} color={COLORS.gray} />
-          <Text style={styles.navLabel}>Payments & Wallet</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="people" size={24} color={COLORS.gray} />
-          <Text style={styles.navLabel}>Refer & Earn</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity 
+            style={styles.navItem}
+            onPress={() => {
+              setCurrentView('map');
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="home" size={24} color={currentView === 'map' ? COLORS.red : COLORS.gray} />
+            <Text style={[styles.navLabel, currentView === 'map' && styles.navLabelActive]}>Home</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.navItem}
+            onPress={() => {
+              setCurrentView('services');
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="security" size={24} color={currentView === 'services' ? COLORS.red : COLORS.gray} />
+            <Text style={[styles.navLabel, currentView === 'services' && styles.navLabelActive]}>Services</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.sosButton}>
+            <View style={styles.sosButtonInner}>
+              <Ionicons name="warning" size={28} color={COLORS.white} />
+            </View>
+            <Text style={styles.sosLabel}>SOS</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.navItem}>
+            <MaterialIcons name="event-note" size={24} color={COLORS.gray} />
+            <Text style={styles.navLabel}>Bookings</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.navItem}
+            onPress={() => router.push('/profile')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="person" size={24} color={COLORS.gray} />
+            <Text style={styles.navLabel}>Profile</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
 
       {/* Profile Setup Modal */}
@@ -265,266 +274,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 1,
-    paddingBottom: 3,
+  searchContainer: {
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 10,
     backgroundColor: COLORS.white,
+    zIndex: 10,
   },
-  menuButton: {
-    padding: 8,
-  },
-  headerRight: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  headerTextContainer: {
-    alignItems: 'flex-end',
-  },
-  welcomeText: {
-    fontSize: 12,
-    color: COLORS.red,
-    fontWeight: '400',
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#000000',
-    marginTop: 2,
-  },
-  profileButton: {
-    marginLeft: 8,
-    marginTop: 3,
-    // paddingRight: 4,
-  },
-  profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.red,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  locationSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5B8A4',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-  },
-  locationText: {
+  searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
+    color: COLORS.darkGray,
+    fontWeight: '400',
+    paddingVertical: 2,
   },
-  heroBannerContainer: {
-    marginBottom: 20,
-    paddingLeft: 16,
-    overflow: 'visible',
-  },
-  heroBannerScroll: {
-    paddingRight: 16,
-    gap: 12,
-    alignItems: 'center',
-  },
-  heroBanner: {
-    flexDirection: 'row',
-    width: width - 60,
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    minHeight: 140,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  heroContent: {
+  scrollContainer: {
     flex: 1,
-    paddingRight: 12,
-    justifyContent: 'center',
-    flexShrink: 1,
+    position: 'relative',
+    marginBottom: 0, // No margin needed as bottom nav is absolute
   },
-  heroTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#000000',
-    marginBottom: 6,
-    letterSpacing: 0.5,
-    lineHeight: 22,
-    flexWrap: 'wrap',
-  },
-  heroSubtitle: {
-    fontSize: 12,
-    color: '#374151',
-    lineHeight: 16,
-    flexWrap: 'wrap',
-  },
-  heroImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 12,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0,
-    marginLeft: 8,
-  },
-  section: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000000',
-    letterSpacing: 0.2,
-    marginBottom: 0,
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.red,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 6,
-    gap: 5,
-    shadowColor: COLORS.red,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  verifiedTextContainer: {
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  verifiedText: {
-    fontSize: 8,
-    fontWeight: '700',
-    color: COLORS.white,
-    letterSpacing: 0.5,
-    lineHeight: 10,
-  },
-  servicesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  mapWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     width: '100%',
+    zIndex: 2,
+    overflow: 'hidden',
   },
-  serviceCard: {
-    width: '31%',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB', 
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+  mapTouchArea: {
+    width: '100%',
+    height: '100%',
   },
-  serviceIconContainer: {
-    marginBottom: 10,
+  scrollView: {
+    flex: 1,
+    zIndex: 1,
+    backgroundColor: 'transparent',
   },
-  serviceIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  serviceTitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#1F2937',
-    textAlign: 'center',
-    lineHeight: 14,
-    paddingHorizontal: 2,
-  },
-  guardsScrollContainer: {
-    marginTop: 18,
-  },
-  guardsScroll: {
-    paddingRight: 16,
-    paddingLeft: 0,
-    gap: 20,
-  },
-  guardCard: {
-    alignItems: 'center',
-    marginRight: 1,
-    width: 100,
-  },
-  guardImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#1F2937',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  guardName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
-    textAlign: 'center',
-    marginBottom: 6,
-    lineHeight: 16,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  ratingText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  guardDistance: {
-    fontSize: 10,
-    color: COLORS.gray,
-    textAlign: 'center',
+  scrollContent: {
+    paddingBottom: 95,
+    backgroundColor: 'transparent',
   },
   bottomNavContainer: {
     position: 'absolute',
@@ -532,6 +335,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: '#1F2937',
+    zIndex: 1000,
+    elevation: 10,
   },
   bottomNav: {
     flexDirection: 'row',
@@ -548,9 +353,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     gap: 4,
+    paddingVertical: 4,
+    zIndex: 1001,
   },
   navLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: COLORS.gray,
     fontWeight: '500',
   },
