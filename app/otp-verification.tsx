@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { API_BASE_URL } from '@/constants/api';
+import { authClient } from '@/services/auth/betterAuth';
 
 // Color scheme
 const COLORS = {
@@ -20,6 +22,8 @@ export default function OTPVerificationScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
@@ -76,11 +80,80 @@ export default function OTPVerificationScreen() {
     }
   };
 
-  const handleVerifyOTP = () => {
+  const handleVerifyOTP = async () => {
     const otpString = otp.join('');
-    if (otpString.length === 6) {
-      // TODO: Verify OTP with backend
-      console.log('Verifying OTP:', otpString);
+    
+    if (otpString.length !== 6) {
+      Alert.alert('Error', 'Please enter the complete 6-digit OTP');
+      return;
+    }
+
+    if (!mobileNumber) {
+      Alert.alert('Error', 'Mobile number not found');
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      // Extract 10-digit number from mobileNumber (remove +91 prefix if present)
+      // mobileNumber might be "+91XXXXXXXXXX" or "XXXXXXXXXX"
+      const phoneNumber = mobileNumber.startsWith('+91') 
+        ? mobileNumber.substring(3) 
+        : mobileNumber.replace(/^\+91/, '').replace(/\D/g, '').slice(0, 10);
+      
+      // Construct the API URL
+      const apiUrl = `${API_BASE_URL}/api/auth/verify-otp`;
+      const requestBody = { 
+        phoneNumber: phoneNumber, // Send without +91
+        code: otpString,
+      };
+      
+      // Console log the API details
+      console.log('=== Verify OTP API Request ===');
+      console.log('API URL:', apiUrl);
+      console.log('Method: POST');
+      console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+      console.log('API_BASE_URL:', API_BASE_URL);
+      console.log('============================');
+      
+      // Use custom endpoint to verify OTP
+      // Use credentials: "include" to capture cookies from response
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Important: include cookies to capture Set-Cookie header
+        body: JSON.stringify(requestBody),
+      });
+      
+      console.log('Response Status:', response.status);
+      console.log('Response OK:', response.ok);
+
+      // Check for Set-Cookie header
+      const setCookieHeader = response.headers.get('Set-Cookie');
+      console.log('Set-Cookie header:', setCookieHeader);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Invalid OTP');
+      }
+
+      const result = await response.json().catch(() => ({}));
+      console.log('Verify OTP response:', result);
+
+      // Extract and store the session token from response
+      if (result.success && result.data?.token) {
+        const sessionToken = result.data.token;
+        console.log('✅ Session token received:', sessionToken);
+        
+        // Store token securely using AsyncStorage
+        const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+        await AsyncStorage.setItem('session_token', sessionToken);
+        console.log('✅ Session token stored in AsyncStorage');
+      } else {
+        console.warn('⚠️ No token found in response');
+      }
+      
+      // Navigate to home screen on success
       Alert.alert('Success', 'OTP verified successfully!', [
         { 
           text: 'OK', 
@@ -90,19 +163,75 @@ export default function OTPVerificationScreen() {
           })
         }
       ]);
-    } else {
-      Alert.alert('Error', 'Please enter the complete 6-digit OTP');
+    } catch (error: any) {
+      // Handle errors
+      console.error('Verify OTP error:', error);
+      const errorMessage = error?.message || 'Invalid OTP. Please try again.';
+      Alert.alert('Verification Failed', errorMessage, [{ text: 'OK' }]);
+      // Clear OTP on error
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    } finally {
+      setIsVerifying(false);
     }
   };
 
-  const handleResendOTP = () => {
-    // TODO: Resend OTP
-    console.log('Resending OTP to:', mobileNumber);
-    setTimer(60);
-    setCanResend(false);
-    setOtp(['', '', '', '', '', '']);
-    inputRefs.current[0]?.focus();
-    Alert.alert('Success', 'OTP has been resent to your mobile number');
+  const handleResendOTP = async () => {
+    if (!mobileNumber) {
+      Alert.alert('Error', 'Mobile number not found');
+      return;
+    }
+
+    setIsResending(true);
+    try {
+      // Extract 10-digit number from mobileNumber (remove +91 prefix if present)
+      // mobileNumber might be "+91XXXXXXXXXX" or "XXXXXXXXXX"
+      const phoneNumber = mobileNumber.startsWith('+91') 
+        ? mobileNumber.substring(3) 
+        : mobileNumber.replace(/^\+91/, '').replace(/\D/g, '').slice(0, 10);
+      
+      // Construct the API URL
+      const apiUrl = `${API_BASE_URL}/api/auth/send-otp`;
+      const requestBody = { phoneNumber: phoneNumber }; // Send without +91
+      
+      // Console log the API details
+      console.log('=== Resend OTP API Request ===');
+      console.log('API URL:', apiUrl);
+      console.log('Method: POST');
+      console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+      console.log('API_BASE_URL:', API_BASE_URL);
+      console.log('=============================');
+      
+      // Use custom endpoint to resend OTP
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+      
+      console.log('Response Status:', response.status);
+      console.log('Response OK:', response.ok);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to resend OTP');
+      }
+      
+      // Reset timer and OTP fields
+      setTimer(60);
+      setCanResend(false);
+      setOtp(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+      
+      Alert.alert('Success', 'OTP has been resent to your mobile number');
+    } catch (error: any) {
+      // Handle errors
+      console.error('Resend OTP error:', error);
+      const errorMessage = error?.message || 'Failed to resend OTP. Please try again.';
+      Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const isOtpComplete = otp.every(digit => digit !== '');
@@ -168,10 +297,18 @@ export default function OTPVerificationScreen() {
                 Resend OTP in <Text style={styles.timerValue}>{timer}s</Text>
               </Text>
             ) : (
-              <TouchableOpacity onPress={handleResendOTP} activeOpacity={0.7}>
-                <Text style={styles.resendText}>
-                  Didn't receive? <Text style={styles.resendLink}>Resend OTP</Text>
-                </Text>
+              <TouchableOpacity 
+                onPress={handleResendOTP} 
+                activeOpacity={0.7}
+                disabled={isResending}
+              >
+                {isResending ? (
+                  <ActivityIndicator size="small" color={COLORS.accentGlow} />
+                ) : (
+                  <Text style={styles.resendText}>
+                    Didn't receive? <Text style={styles.resendLink}>Resend OTP</Text>
+                  </Text>
+                )}
               </TouchableOpacity>
             )}
           </View>
@@ -181,11 +318,15 @@ export default function OTPVerificationScreen() {
             style={[styles.verifyButton, isOtpComplete && styles.verifyButtonActive]} 
             onPress={handleVerifyOTP}
             activeOpacity={0.8}
-            disabled={!isOtpComplete}
+            disabled={!isOtpComplete || isVerifying}
           >
-            <Text style={[styles.verifyButtonText, !isOtpComplete && styles.verifyButtonTextDisabled]}>
-              VERIFY OTP
-            </Text>
+            {isVerifying ? (
+              <ActivityIndicator size="small" color="#12122A" />
+            ) : (
+              <Text style={[styles.verifyButtonText, !isOtpComplete && styles.verifyButtonTextDisabled]}>
+                VERIFY OTP
+              </Text>
+            )}
           </TouchableOpacity>
 
           {/* Change Number */}

@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { API_BASE_URL } from '@/constants/api';
 
 // Color scheme
 const COLORS = {
@@ -15,16 +16,62 @@ const COLORS = {
 export default function LoginScreen() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const inputRefs = useRef<TextInput>(null);
 
-  const handleSendOTP = () => {
-    if (mobileNumber.length >= 10) {
-      // Navigate to OTP verification screen
+  const handleSendOTP = async () => {
+    if (mobileNumber.length < 10) {
+      Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Send phone number without country code prefix (backend expects 10 digits)
+      // Format: XXXXXXXXXX (10 digits only)
+      const phoneNumber = mobileNumber; // Already 10 digits from input
+      
+      // Construct the API URL
+      const apiUrl = `${API_BASE_URL}/api/auth/send-otp`;
+      const requestBody = { phoneNumber }; // Send without +91
+      
+      // Console log the API details
+      console.log('=== Send OTP API Request ===');
+      console.log('API URL:', apiUrl);
+      console.log('Method: POST');
+      console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+      console.log('API_BASE_URL:', API_BASE_URL);
+      console.log('===========================');
+      
+      // Use custom endpoint to send OTP
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+      
+      console.log('Response Status:', response.status);
+      console.log('Response OK:', response.ok);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to send OTP');
+      }
+      
+      // Navigate to OTP verification screen on success
+      // Store with country code for display purposes only
       router.push({
         pathname: '/otp-verification',
-        params: { mobileNumber: `+91 ${mobileNumber}` }
+        params: { mobileNumber: `+91${mobileNumber}` } // Display format only
       });
+    } catch (error: any) {
+      // Handle errors
+      console.error('Send OTP error:', error);
+      const errorMessage = error?.message || 'Failed to send OTP. Please try again.';
+      Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -106,11 +153,15 @@ export default function LoginScreen() {
             style={[styles.sendOTPButton, mobileNumber.length >= 10 && styles.sendOTPButtonActive]} 
             onPress={handleSendOTP}
             activeOpacity={0.8}
-            disabled={mobileNumber.length < 10}
+            disabled={mobileNumber.length < 10 || isLoading}
           >
-            <Text style={[styles.sendOTPButtonText, mobileNumber.length < 10 && styles.sendOTPButtonTextDisabled]}>
-              SEND OTP
-            </Text>
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#12122A" />
+            ) : (
+              <Text style={[styles.sendOTPButtonText, mobileNumber.length < 10 && styles.sendOTPButtonTextDisabled]}>
+                SEND OTP
+              </Text>
+            )}
           </TouchableOpacity>
 
           {/* Terms & Privacy Policy */}

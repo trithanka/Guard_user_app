@@ -9,9 +9,13 @@ import {
   ScrollView,
   Platform,
   KeyboardAvoidingView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { authApi } from '@/services/api';
+import { ApiError } from '@/services/api/client';
 
 // Color scheme
 const COLORS = {
@@ -50,6 +54,7 @@ export default function ProfileSetupModal({
   const [email, setEmail] = useState('');
   const [showGenderPicker, setShowGenderPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     gender?: string;
@@ -107,6 +112,17 @@ export default function ProfileSetupModal({
     return `${day}/${month}/${year}`;
   };
 
+  const formatDateForAPI = (date: Date | null): string => {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      return '';
+    }
+    // Format as YYYY-MM-DD for API
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
@@ -127,21 +143,71 @@ export default function ProfileSetupModal({
     setShowDatePicker(false);
   };
 
-  const handleSubmit = () => {
-    if (validateForm() && dob) {
+  const handleSubmit = async () => {
+    if (!validateForm() || !dob) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Prepare update data
+      const updateData: {
+        name?: string;
+        gender?: string;
+        dob?: string;
+        email?: string;
+      } = {};
+
+      if (name.trim()) {
+        updateData.name = name.trim();
+      }
+      if (gender) {
+        updateData.gender = gender;
+      }
+      if (dob) {
+        updateData.dob = formatDateForAPI(dob);
+      }
+      if (email.trim()) {
+        updateData.email = email.trim();
+      }
+
+      console.log('=== Profile Setup API Request ===');
+      console.log('API Endpoint: PATCH /api/user/profile');
+      console.log('Request Body:', JSON.stringify(updateData, null, 2));
+      console.log('================================');
+
+      // Call API to update profile
+      const updatedUser = await authApi.updateProfile(updateData);
+      
+      console.log('Profile updated successfully:', updatedUser);
+
+      // Call the onSubmit callback with formatted data
       onSubmit({
         name: name.trim(),
         gender,
         dob: formatDate(dob),
         email: email.trim() || undefined,
       });
+
       // Reset form
       setName('');
       setGender('');
       setDob(null);
       setEmail('');
       setErrors({});
-      onClose();
+      
+      Alert.alert('Success', 'Profile setup completed successfully!', [
+        { text: 'OK', onPress: onClose }
+      ]);
+    } catch (error) {
+      console.error('Profile setup error:', error);
+      if (error instanceof ApiError) {
+        Alert.alert('Error', error.message || 'Failed to save profile. Please try again.');
+      } else {
+        Alert.alert('Network Error', 'Unable to connect. Please check your internet connection and try again.');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -315,11 +381,16 @@ export default function ProfileSetupModal({
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={styles.submitButton}
+                style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
                 onPress={handleSubmit}
                 activeOpacity={0.8}
+                disabled={isLoading}
               >
-                <Text style={styles.submitButtonText}>Save Profile</Text>
+                {isLoading ? (
+                  <ActivityIndicator color={COLORS.white} />
+                ) : (
+                  <Text style={styles.submitButtonText}>Save Profile</Text>
+                )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.skipButton}
@@ -456,6 +527,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     marginBottom: 12,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
   },
   submitButtonText: {
     fontSize: 16,

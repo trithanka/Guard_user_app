@@ -80,14 +80,38 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    // Show profile modal if user just logged in
-    // In a real app, you'd check AsyncStorage or backend to see if profile is complete
+    // Show profile modal if user just logged in AND doesn't have a name
     if (isNewLogin) {
-      // Small delay to ensure screen is fully loaded
-      const timer = setTimeout(() => {
-        setShowProfileModal(true);
-      }, 500);
-      return () => clearTimeout(timer);
+      const checkUserProfile = async () => {
+        try {
+          // Wait a bit for token to be stored
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Check if user has a name by fetching profile
+          const { authApi } = await import('@/services/api');
+          const user = await authApi.getCurrentUser();
+          
+          console.log('User profile check:', {
+            name: user.name,
+            phoneNumber: (user as any).phoneNumber,
+            hasName: !!(user.name && user.name.trim() !== ''),
+          });
+          
+          // Only show modal if user doesn't have a name (name is null or empty)
+          if (!user.name || user.name.trim() === '') {
+            console.log('User has no name, showing profile setup modal');
+            setShowProfileModal(true);
+          } else {
+            console.log('User already has name:', user.name, '- skipping profile modal');
+          }
+        } catch (error) {
+          console.error('Error checking user profile:', error);
+          // If error, show modal anyway (user might not be authenticated yet)
+          setShowProfileModal(true);
+        }
+      };
+      
+      checkUserProfile();
     }
   }, [isNewLogin]);
 
@@ -97,15 +121,14 @@ export default function HomeScreen() {
     dob: string;
     email?: string;
   }) => {
-    // TODO: Save profile data to backend/AsyncStorage
-    console.log('Profile data:', profileData);
+    // Profile data is already saved to backend via API in ProfileSetupModal
+    console.log('Profile setup completed:', profileData);
     
     // Update user name in header if available
     // You can store this in state or context for global access
     
-    Alert.alert('Success', 'Profile setup completed successfully!', [
-      { text: 'OK', onPress: () => setShowProfileModal(false) }
-    ]);
+    // Modal will close automatically after successful API call
+    setShowProfileModal(false);
   };
 
   return (
