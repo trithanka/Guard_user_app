@@ -6,7 +6,7 @@ import { getLocationData, LocationCoords, requestLocationPermission } from '@/se
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Dimensions, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -42,7 +42,7 @@ export default function HomeScreen() {
     const fetchLocation = async () => {
       setIsLoadingLocation(true);
       const locationData = await getLocationData();
-      
+
       if (locationData) {
         setUserLocation(locationData.coordinates);
         setLocationPermission(true);
@@ -52,7 +52,7 @@ export default function HomeScreen() {
       } else {
         setLocationPermission(false);
       }
-      
+
       setIsLoadingLocation(false);
     };
 
@@ -62,7 +62,7 @@ export default function HomeScreen() {
   const handleRetryPermission = async () => {
     setIsLoadingLocation(true);
     const permissionResult = await requestLocationPermission();
-    
+
     if (permissionResult.granted) {
       const locationData = await getLocationData();
       if (locationData) {
@@ -75,7 +75,7 @@ export default function HomeScreen() {
     } else {
       setLocationPermission(false);
     }
-    
+
     setIsLoadingLocation(false);
   };
 
@@ -86,17 +86,17 @@ export default function HomeScreen() {
         try {
           // Wait a bit for token to be stored
           await new Promise(resolve => setTimeout(resolve, 1000));
-          
+
           // Check if user has a name by fetching profile
           const { authApi } = await import('@/services/api');
           const user = await authApi.getCurrentUser();
-          
+
           console.log('User profile check:', {
             name: user.name,
             phoneNumber: (user as any).phoneNumber,
             hasName: !!(user.name && user.name.trim() !== ''),
           });
-          
+
           // Only show modal if user doesn't have a name (name is null or empty)
           if (!user.name || user.name.trim() === '') {
             console.log('User has no name, showing profile setup modal');
@@ -110,7 +110,7 @@ export default function HomeScreen() {
           setShowProfileModal(true);
         }
       };
-      
+
       checkUserProfile();
     }
   }, [isNewLogin]);
@@ -123,10 +123,10 @@ export default function HomeScreen() {
   }) => {
     // Profile data is already saved to backend via API in ProfileSetupModal
     console.log('Profile setup completed:', profileData);
-    
+
     // Update user name in header if available
     // You can store this in state or context for global access
-    
+
     // Modal will close automatically after successful API call
     setShowProfileModal(false);
   };
@@ -134,39 +134,39 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-      
-        {/* Conditional Content */}
-        {currentView === 'map' ? (
-          <>
-            {/* Location Search Filter */}
-            <View style={styles.searchContainer}>
-              <View style={styles.searchBar}>
-                <MaterialIcons name="search" size={24} color={COLORS.gray} />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search location or address"
-                  placeholderTextColor={COLORS.gray}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  returnKeyType="search"
-                  onSubmitEditing={() => {
-                    // TODO: Implement search functionality
-                    console.log('Searching for:', searchQuery);
-                  }}
-                />
-                <TouchableOpacity 
-                  onPress={() => {
-                    // TODO: Implement filter functionality
-                    console.log('Open filters');
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="tune" size={24} color={COLORS.gray} />
-                </TouchableOpacity>
-              </View>
-            </View>
 
-            {/* Scrollable Content with Parallax Map */}
+      {/* Conditional Content */}
+      {currentView === 'map' ? (
+        <>
+          {/* Location Search Filter */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <MaterialIcons name="search" size={24} color={COLORS.gray} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search location or address"
+                placeholderTextColor={COLORS.gray}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                returnKeyType="search"
+                onSubmitEditing={() => {
+                  // TODO: Implement search functionality
+                  console.log('Searching for:', searchQuery);
+                }}
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  // TODO: Implement filter functionality
+                  console.log('Open filters');
+                }}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons name="tune" size={24} color={COLORS.gray} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Scrollable Content with Parallax Map */}
           <View style={styles.scrollContainer}>
             {/* Parallax Map Section */}
             <Animated.View
@@ -224,7 +224,7 @@ export default function HomeScreen() {
             >
               {/* Spacer to push content below map - starts exactly where map ends */}
               <View style={{ height: MAP_HEIGHT }} />
-              
+
               {/* Guard Request Form */}
               <GuardRequestForm />
             </Animated.ScrollView>
@@ -237,7 +237,7 @@ export default function HomeScreen() {
       {/* Bottom Navigation */}
       <SafeAreaView edges={['bottom']} style={styles.bottomNavContainer}>
         <View style={styles.bottomNav}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.navItem}
             onPress={() => {
               setCurrentView('map');
@@ -247,8 +247,8 @@ export default function HomeScreen() {
             <MaterialIcons name="home" size={24} color={currentView === 'map' ? COLORS.red : COLORS.gray} />
             <Text style={[styles.navLabel, currentView === 'map' && styles.navLabelActive]}>Home</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.navItem}
             onPress={() => {
               setCurrentView('services');
@@ -258,20 +258,24 @@ export default function HomeScreen() {
             <MaterialIcons name="security" size={24} color={currentView === 'services' ? COLORS.red : COLORS.gray} />
             <Text style={[styles.navLabel, currentView === 'services' && styles.navLabelActive]}>Services</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.sosButton}>
             <View style={styles.sosButtonInner}>
               <Ionicons name="warning" size={28} color={COLORS.white} />
             </View>
             <Text style={styles.sosLabel}>SOS</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.navItem}>
+
+          <TouchableOpacity
+            style={styles.navItem}
+            onPress={() => router.push('/bookings')}
+            activeOpacity={0.7}
+          >
             <MaterialIcons name="event-note" size={24} color={COLORS.gray} />
             <Text style={styles.navLabel}>Bookings</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.navItem}
             onPress={() => router.push('/profile')}
             activeOpacity={0.7}

@@ -11,7 +11,7 @@ import { Platform } from 'react-native';
 // Find it using: Windows: `ipconfig` | Mac/Linux: `ifconfig`
 // Example: '192.168.1.100' or '10.0.0.5'
 // Current IP from ipconfig: 10.175.203.53 (WiFi adapter)
-const PHYSICAL_DEVICE_IP = '10.175.203.53'; // Your WiFi IP address
+const PHYSICAL_DEVICE_IP = '10.242.66.53'; // Your WiFi IP address
 
 // Production API URL
 const PRODUCTION_API_URL = 'https://guard-1-0rac.onrender.com';
@@ -30,7 +30,7 @@ const DEVELOPMENT_API_URL = `http://${PHYSICAL_DEVICE_IP}:2154`;
  * 
  * ⚠️ Remember to set this back to `false` when done!
  */
-const FORCE_PRODUCTION_API = false; // Set to `true` to use production API
+const FORCE_PRODUCTION_API = true; // Set to `true` to use production API
 
 /**
  * Get the correct base URL based on platform and environment
@@ -51,12 +51,12 @@ const getBaseURL = (): string => {
     }
     return PRODUCTION_API_URL;
   }
-  
+
   // Automatic: Production build uses production API
   if (!__DEV__) {
     return PRODUCTION_API_URL;
   }
-  
+
   // Development mode - use local server
   return DEVELOPMENT_API_URL;
 };
@@ -87,7 +87,7 @@ export const API_ENDPOINTS = {
     ME: 'auth/me',
     PROFILE: 'auth/profile',
   },
-  
+
   // Guards
   GUARDS: {
     AVAILABLE: 'guards/available',
@@ -99,13 +99,13 @@ export const API_ENDPOINTS = {
     CANCEL_BOOKING: (id: string) => `guards/bookings/${id}`,
     RATE: (id: string) => `guards/bookings/${id}/rate`,
   },
-  
+
   // Services
   SERVICES: {
     LIST: 'services',
     DETAILS: (id: string) => `services/${id}`,
   },
-  
+
   // Payments
   PAYMENTS: {
     METHODS: 'payments/methods',

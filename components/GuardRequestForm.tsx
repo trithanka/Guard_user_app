@@ -16,15 +16,13 @@ const COLORS = {
 };
 
 type ProtectionType = 'personal' | 'escort' | 'standby';
-type PaymentMethod = 'upi' | 'card' | 'custom';
 
 export const GuardRequestForm: React.FC = () => {
   const [protectionType, setProtectionType] = useState<ProtectionType>('personal');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
 
   const handleRequestGuard = () => {
     // TODO: Implement guard request logic
-    console.log('Request guard:', { protectionType, paymentMethod });
+    console.log('Request guard:', { protectionType });
   };
 
   return (
@@ -35,164 +33,89 @@ export const GuardRequestForm: React.FC = () => {
           <Text style={styles.heroTitle}>Need Protection Right Now?</Text>
           <Text style={styles.heroSubtitle}>Get instant security guard service</Text>
         </View>
+
+        {/* Protection Type Options inside Hero Card */}
+        <View style={styles.optionsRowInside}>
+          <TouchableOpacity
+            style={[
+              styles.protectionOption,
+              protectionType === 'personal' && styles.protectionOptionActive,
+            ]}
+            onPress={() => setProtectionType('personal')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name="person"
+              size={24}
+              color={protectionType === 'personal' ? COLORS.blue : COLORS.darkGray}
+            />
+            <Text
+              style={[
+                styles.optionText,
+                protectionType === 'personal' && styles.optionTextActive
+              ]}
+              numberOfLines={1}
+            >
+              Personal
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.protectionOption,
+              protectionType === 'escort' && styles.protectionOptionActive,
+            ]}
+            onPress={() => setProtectionType('escort')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name="directions-car"
+              size={24}
+              color={protectionType === 'escort' ? COLORS.blue : COLORS.darkGray}
+            />
+            <Text
+              style={[
+                styles.optionText,
+                protectionType === 'escort' && styles.optionTextActive
+              ]}
+              numberOfLines={1}
+            >
+              Escort / Travel
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.protectionOption,
+              protectionType === 'standby' && styles.protectionOptionActive,
+            ]}
+            onPress={() => setProtectionType('standby')}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons
+              name="schedule"
+              size={24}
+              color={protectionType === 'standby' ? COLORS.blue : COLORS.darkGray}
+            />
+            <Text
+              style={[
+                styles.optionText,
+                protectionType === 'standby' && styles.optionTextActive
+              ]}
+              numberOfLines={1}
+            >
+              Standby
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity style={styles.primaryButton} activeOpacity={0.8}>
           <Text style={styles.primaryButtonText}>REQUEST GUARD NOW</Text>
         </TouchableOpacity>
         <View style={styles.etaContainer}>
           <MaterialIcons name="schedule" size={16} color={COLORS.blue} />
-          <Text style={styles.etaText}>ETA: 8 min</Text>
+          <Text style={styles.etaText}>ETA: 8 min away</Text>
         </View>
-      </View>
-
-      {/* Protection Type Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>How do you need protection?</Text>
-        <View style={styles.optionsRow}>
-           <TouchableOpacity
-             style={[
-               styles.protectionOption,
-               protectionType === 'personal' && styles.protectionOptionActive,
-             ]}
-             onPress={() => setProtectionType('personal')}
-             activeOpacity={0.7}
-           >
-             <MaterialIcons 
-               name="person" 
-               size={28} 
-               color={protectionType === 'personal' ? COLORS.blue : COLORS.darkGray} 
-             />
-             <Text 
-               style={[
-                 styles.optionText,
-                 protectionType === 'personal' && styles.optionTextActive
-               ]}
-               numberOfLines={1}
-             >
-               Personal
-             </Text>
-           </TouchableOpacity>
-
-           <TouchableOpacity
-             style={[
-               styles.protectionOption,
-               protectionType === 'escort' && styles.protectionOptionActive,
-             ]}
-             onPress={() => setProtectionType('escort')}
-             activeOpacity={0.7}
-           >
-             <MaterialIcons 
-               name="directions-car" 
-               size={28} 
-               color={protectionType === 'escort' ? COLORS.blue : COLORS.darkGray} 
-             />
-             <Text 
-               style={[
-                 styles.optionText,
-                 protectionType === 'escort' && styles.optionTextActive
-               ]}
-               numberOfLines={1}
-             >
-               Escort / Travel
-             </Text>
-           </TouchableOpacity>
-
-           <TouchableOpacity
-             style={[
-               styles.protectionOption,
-               protectionType === 'standby' && styles.protectionOptionActive,
-             ]}
-             onPress={() => setProtectionType('standby')}
-             activeOpacity={0.7}
-           >
-             <MaterialIcons 
-               name="schedule" 
-               size={28} 
-               color={protectionType === 'standby' ? COLORS.blue : COLORS.darkGray} 
-             />
-             <Text 
-               style={[
-                 styles.optionText,
-                 protectionType === 'standby' && styles.optionTextActive
-               ]}
-               numberOfLines={1}
-             >
-               Standby
-             </Text>
-           </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Payment Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payment Method</Text>
-        <View style={styles.paymentRow}>
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === 'upi' && styles.paymentOptionActive,
-            ]}
-            onPress={() => setPaymentMethod('upi')}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons 
-              name="account-balance-wallet" 
-              size={20} 
-              color={paymentMethod === 'upi' ? COLORS.blue : COLORS.gray} 
-            />
-            <Text style={[styles.paymentText, paymentMethod === 'upi' && styles.paymentTextActive]}>
-              UPI
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === 'card' && styles.paymentOptionActive,
-            ]}
-            onPress={() => setPaymentMethod('card')}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons 
-              name="credit-card" 
-              size={20} 
-              color={paymentMethod === 'card' ? COLORS.blue : COLORS.gray} 
-            />
-            <Text style={[styles.paymentText, paymentMethod === 'card' && styles.paymentTextActive]}>
-              Card
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.paymentOption,
-              paymentMethod === 'custom' && styles.paymentOptionActive,
-            ]}
-            onPress={() => setPaymentMethod('custom')}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons 
-              name="handshake" 
-              size={20} 
-              color={paymentMethod === 'custom' ? COLORS.blue : COLORS.gray} 
-            />
-            <Text style={[styles.paymentText, paymentMethod === 'custom' && styles.paymentTextActive]}>
-              Pay in Hand
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Request Button */}
-      <View style={styles.section}>
-        <TouchableOpacity 
-          style={styles.requestButton} 
-          onPress={handleRequestGuard}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.requestButtonText}>
-            REQUEST {protectionType === 'personal' ? 'PERSONAL' : protectionType === 'escort' ? 'ESCORT' : 'STANDBY'} GUARD
-          </Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -271,27 +194,23 @@ const styles = StyleSheet.create({
     color: COLORS.blue,
     fontWeight: '600',
   },
-  optionsRow: {
+  optionsRowInside: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 8,
+    marginVertical: 16,
   },
   protectionOption: {
     flex: 1,
-    minHeight: 80,
+    minHeight: 70,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: COLORS.grayBorder,
-    paddingVertical: 12,
-    paddingHorizontal: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   protectionOptionActive: {
     borderWidth: 2,

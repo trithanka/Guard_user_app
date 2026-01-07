@@ -1,24 +1,24 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { 
-  ScrollView, 
-  StatusBar, 
-  StyleSheet, 
-  Text, 
-  TextInput,
-  TouchableOpacity, 
-  View, 
-  Modal,
-  Alert,
-  ActivityIndicator,
-  Platform,
-  KeyboardAvoidingView,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { authApi } from '@/services/api';
 import { ApiError } from '@/services/api/client';
+import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const COLORS = {
   red: '#EF4444',
@@ -38,13 +38,10 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { id: 'safety', title: 'Safety', icon: 'verified-user' },
+
   { id: 'my-bookings', title: 'My Bookings', icon: 'event-note' },
-  { id: 'payment', title: 'Payment', icon: 'account-balance-wallet' },
   { id: 'refer', title: 'Refer & Earn', icon: 'card-giftcard' },
-  { id: 'notifications', title: 'Notifications', icon: 'notifications-none' },
   { id: 'help', title: 'Help & Support', icon: 'help-outline' },
-  { id: 'settings', title: 'Settings', icon: 'settings' },
   { id: 'terms', title: 'Terms & Privacy', icon: 'privacy-tip' },
   { id: 'become-guard', title: 'Become a Guard', icon: 'security' },
 ];
@@ -62,22 +59,49 @@ export default function ProfileScreen() {
     gender: '',
     dob: '',
   });
-  
+
   const [editForm, setEditForm] = useState({
     name: '',
     email: '',
     gender: '',
     dob: null as Date | null,
   });
-  
+
   const [showGenderPicker, setShowGenderPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
     gender?: string;
     dob?: string;
   }>({});
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            setIsLoggingOut(true);
+            try {
+              await authApi.logout();
+              router.replace('/login');
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            } finally {
+              setIsLoggingOut(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   useEffect(() => {
     loadUserData();
@@ -88,9 +112,9 @@ export default function ProfileScreen() {
     try {
       console.log('=== Fetching Profile Data ===');
       console.log('API Endpoint: GET /api/user/profile');
-      
+
       const user = await authApi.getCurrentUser();
-      
+
       console.log('Profile data received:', {
         id: user.id,
         name: user.name,
@@ -99,7 +123,7 @@ export default function ProfileScreen() {
         gender: (user as any).gender,
         dob: (user as any).dob,
       });
-      
+
       // Update profile data with API response
       // API returns: phoneNumber, not phone
       setProfileData({
@@ -118,7 +142,11 @@ export default function ProfileScreen() {
   };
 
   const handleMenuItemPress = (itemId: string) => {
-    // TODO: Implement navigation to specific screens
+    if (itemId === 'my-bookings') {
+      router.push('/bookings');
+      return;
+    }
+    // TODO: Implement navigation for other items
     console.log('Navigate to:', itemId);
   };
 
@@ -232,7 +260,7 @@ export default function ProfileScreen() {
       }
 
       const updatedUser = await authApi.updateProfile(updateData);
-      
+
       // Update local state with API response
       // API returns: phoneNumber, not phone
       setProfileData({
@@ -242,7 +270,7 @@ export default function ProfileScreen() {
         gender: (updatedUser as any).gender || '',
         dob: (updatedUser as any).dob || '',
       });
-      
+
       // Reload profile data to ensure we have the latest
       await loadUserData();
 
@@ -285,8 +313,8 @@ export default function ProfileScreen() {
               </View>
             </View>
           ) : (
-            <TouchableOpacity 
-              style={styles.profileInfo} 
+            <TouchableOpacity
+              style={styles.profileInfo}
               activeOpacity={0.7}
               onPress={handleEditProfile}
             >
@@ -329,6 +357,23 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          disabled={isLoggingOut}
+          activeOpacity={0.7}
+        >
+          {isLoggingOut ? (
+            <ActivityIndicator size="small" color={COLORS.red} />
+          ) : (
+            <>
+              <MaterialIcons name="logout" size={24} color={COLORS.red} />
+              <Text style={styles.logoutText}>Logout</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Edit Profile Modal */}
@@ -441,7 +486,7 @@ export default function ProfileScreen() {
                   <MaterialIcons name="calendar-today" size={20} color={COLORS.darkGray} />
                 </TouchableOpacity>
                 {errors.dob && <Text style={styles.errorText}>{errors.dob}</Text>}
-                
+
                 {showDatePicker && (
                   <>
                     {Platform.OS === 'ios' ? (
@@ -750,6 +795,25 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.borderGray,
   },
   iosDatePickerButton: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.red,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 24,
+    marginBottom: 32,
+    paddingVertical: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.red,
+  },
+  logoutText: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.red,

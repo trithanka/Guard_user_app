@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  Modal,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Platform,
-  KeyboardAvoidingView,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { authApi } from '@/services/api';
 import { ApiError } from '@/services/api/client';
+import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 // Color scheme
 const COLORS = {
@@ -178,7 +178,7 @@ export default function ProfileSetupModal({
 
       // Call API to update profile
       const updatedUser = await authApi.updateProfile(updateData);
-      
+
       console.log('Profile updated successfully:', updatedUser);
 
       // Call the onSubmit callback with formatted data
@@ -195,7 +195,7 @@ export default function ProfileSetupModal({
       setDob(null);
       setEmail('');
       setErrors({});
-      
+
       Alert.alert('Success', 'Profile setup completed successfully!', [
         { text: 'OK', onPress: onClose }
       ]);
@@ -224,7 +224,10 @@ export default function ProfileSetupModal({
       visible={visible}
       animationType="slide"
       transparent={true}
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        // Modal is mandatory, cannot be skipped
+        console.log('Profile setup is mandatory');
+      }}
     >
       <KeyboardAvoidingView
         style={styles.modalOverlay}
@@ -326,7 +329,7 @@ export default function ProfileSetupModal({
                 <MaterialIcons name="calendar-today" size={20} color={COLORS.primaryText} />
               </TouchableOpacity>
               {errors.dob && <Text style={styles.errorText}>{errors.dob}</Text>}
-              
+
               {showDatePicker && (
                 <>
                   {Platform.OS === 'ios' ? (
@@ -391,13 +394,6 @@ export default function ProfileSetupModal({
                 ) : (
                   <Text style={styles.submitButtonText}>Save Profile</Text>
                 )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.skipButton}
-                onPress={onClose}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.skipButtonText}>Skip for now</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
